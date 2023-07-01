@@ -1,0 +1,75 @@
+version: '3'
+
+services:
+#php
+  php:
+    image: php:7.2-apache
+    volumes:
+      - ./php/php.ini:/usr/local/etc/php/php.ini
+      - ./php/html:/var/www/html
+    ports:
+      - 8080:80
+  mysql:
+    image: mysql:5.5
+    volumes:
+      - ./php/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test
+      - MYSQL_USER=test
+      - MYSQL_PASSWORD=test
+      - TZ=Asia/Tokyo
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
+      - PMA_USER=test
+      - PMA_PASSWORD=test
+    ports:
+      - 4040:80
+    volumes:
+      - ./php/phpmyadmin/sessions:/sessions
+
+#python 
+  python3:
+    restart: always
+    build: ./python
+    container_name: 'python3'
+    working_dir: '/root/src'
+    tty: true
+    volumes:
+      - ./python/src:/root/src
+
+#java
+  java:
+    image: openjdk:15
+    ports:
+      - 8085:8080
+    tty: true
+    volumes:
+      - ./java/server:/srv:cached
+    working_dir: /srv
+
+#ruby
+  ruby-db:
+    image: mysql:5.7
+    environment:
+      MYSQL_USER: user
+      MYSQL_ROOT_PASSWORD: pass
+    ports:
+      - "33065:3306"
+    volumes:
+      - ruby-mysql_data:/var/lib/mysql
+
+  ruby-web:
+    build: ./ruby
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - ./ruby:/myapp
+    ports:
+      - 3000:3000
+    depends_on:
+      - ruby-db
+volumes:
+  ruby-mysql_data:
